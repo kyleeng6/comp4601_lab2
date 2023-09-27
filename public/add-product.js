@@ -34,7 +34,7 @@ function validateForm() {
 			}
 		};
 
-		xhttp.open('POST', '/add-product');			
+		xhttp.open('POST', '/products');			
 		xhttp.setRequestHeader('Content-Type', 'application/json');
 		let data = JSON.stringify(newProduct);
 		xhttp.send(data);

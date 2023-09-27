@@ -13,7 +13,7 @@ To Run:
 
 MongoDB Semantics
 - Navigate to Working Directory (Server Folder)
-- Run mongod --dbpath products/L2-DB
+- Run: mongod --dbpath products/L2-DB
 	- make sure L2-DB (a directory) is created before running the cmd.
 - Use "mongodb": "^4.9.1"
 	- for some reason version 6.1.0 did not work and I couldn't connect to the database.

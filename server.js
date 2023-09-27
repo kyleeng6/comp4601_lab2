@@ -83,7 +83,7 @@ function initServer() {
 	fs.readFile('products/products.json', 'utf8', function(err, contents) {
 		if (err) {
 			console.log('Error: Could not parse products.json', err);
-			throw err;
+			return;
 		}
 	
 		const data = JSON.parse(contents);
@@ -93,15 +93,20 @@ function initServer() {
 		//console.log(data);
 
 		// Reset + Initialize Database
-		db.collection('products').drop((err, success) => {
-			if (err) throw err;
-			if (success) console.log("\"products\" Collection Deleted Succesfully");
-			db.collection('products').insertMany(data, function(err, result){
-				if(err) throw err;
-				// console.log(result);
-				// Now that database is initialized, we can Start the Server
+		db.collection('products').drop((err) => {
+			if (err) {
+				console.log('[Error: Could not drop "products\" collection.]', err);
+				return;
+			}
+			console.log("[Success: \"products\" collection dropped.]");
+			db.collection('products').insertMany(data, function(err){
+				if (err) {
+					console.log('[Error: Could not initialize "products\" collection.]', err);
+					return;
+				}
+				console.log("[Success: \"products\" collection initialized.]");
 				app.listen(port, () => {
-					console.log(`Success! Your application is running on port ${port}.`);
+					console.log(`[Success: Your application is running on port ${port}.]`);
 				});
 			});
 		});
@@ -127,8 +132,8 @@ app.get(['/orders'], sendOrders);							// Sends orders (JSON)
 app.get(['/orders/:orderid'], sendOrder);					// Sends singular order (JSON)
 
 // POST ROUTES
-app.post(['/add-products'], addProduct);					// Creates a new product
-app.post(['/add-reviews'], addReview);						// Creates a new review for a product
+app.post(['/products'], addProduct);						// Creates a new product
+app.post(['/reviews'], addReview);							// Creates a new review for a product
 
 app.post(['/orders'], addOrder);							// Creates a new review for a product
 
@@ -176,11 +181,11 @@ function sendProducts(req, res){
 	// console.log(query);
 	db.collection("products").find(query).toArray(function(err, result){
 		if(err) {
-			console.log('[sendProducts()] => [Error: Could not query products.]');
+			console.log('[Error: ([GET] Products) => Could not query products.]');
 			res.status(400);
 			res.set('Content-Type', 'text/plain');
-			res.send('[sendProducts()] => [Error: Could not query products. Bad Request.]');
-			throw err;
+			res.send('[Error: ([GET] Products) => Could not query products. Bad Request.]');
+			return;
 		}
 		res.format ({
 			'text/html': ()=> {
@@ -196,35 +201,53 @@ function sendProducts(req, res){
 			'default': ()=> { 
 				res.status(406);
 				res.set('Content-Type', 'text/plain');
-				res.send('[sendProducts()] => [Error: Requested format in Accept header is not supported.]');
+				res.send('[Error: ([GET] Product) => Requested format in Accept header is not supported.]');
 			}
 		});
 	});
 }
 
 function sendProduct(req, res){
-	const productID = req.params.productid;
-	// const targetProduct = inventory[productID];
-	// console.log (targetProduct);
-
+	const productID = +req.params.productid;
 	let query = {
-		id : productID
+		id : {'$eq' : productID}
 	};
-	// console.log(query);
+	console.log(query);
 
-	db.collection("products").find(query).toArray(function(err, result){
+	db.collection("products").findOne(query, function(err, result) {
 		if(err) {
-			console.log('[sendProduct()] => [Error: Could not query product.]');
+			console.log('[Error: ([GET] Product) => Could not query product.]');
 			res.status(400);
 			res.set('Content-Type', 'text/plain');
-			res.send('[sendProduct()] => [Error: Could not query product. Bad Request.]');
-			throw err;
+			res.send('[Error: ([GET] Product) => Could not query product. Bad Request.]');
+			return;
 		}
+		console.log(result);
+		if (result == null) {
+			console.log('[Error: ([GET] Product) => Product Does not Exist.]');
+			res.status(404);
+			res.set('Content-Type', 'text/plain');
+			res.send('[Error: ([GET] Product) => Product Could not be Found.]');
+			return;
+		}
+		let avgRating = -1;
+		if (result.reviews.length !== 0) {
+			let sum = 0;
+			let tot = 0;
+			console.log(result.reviews)
+			for (const rating of result.reviews) {
+				sum += rating;
+				tot += 1;
+			}
+			avgRating = sum/tot;
+		}
+		//console.log(avgRating)
+
 		res.format ({
 			'text/html': ()=> {
 				res.status(200);
 				res.set('Content-Type', 'text/html');
-				res.render('pages/products', {inventory: result});
+				res.render('pages/product', {product: result, avgRating: avgRating});
 			},
 			'application/json': ()=> {
 				res.status(200);
@@ -234,79 +257,67 @@ function sendProduct(req, res){
 			'default': ()=> { 
 				res.status(406);
 				res.set('Content-Type', 'text/plain');
-				res.send('[sendProducts()] => [Error: Requested format in Accept header is not supported.]');
+				res.send('[Error: ([GET] Product) => Requested format in Accept header is not supported.]');
 			}
 		});
 	});
-
-
-	if (targetProduct !== undefined) {
-		let sum = 0;
-		let tot = 0;
-		for (const rating of inventory[productID].reviews) {
-			sum += rating;
-			tot += 1;
-		}
-		let avgRating = (tot === 0) ? -1 : sum/tot;
-		console.log(avgRating)
-		res.format ({
-			'text/html': ()=> {
-				res.status(200);
-				res.set('Content-Type', 'text/html');
-				res.render(`pages/product`, {product: targetProduct, avgRating: avgRating});
-			},
-			'application/json': ()=> {
-				res.status(200);
-				res.set('Content-Type', 'application/json');
-				res.json(targetProduct);
-			},
-			'default': ()=> { 
-				res.status(404);
-				res.set('Content-Type', 'text/plain');
-				res.send('Server Error: Could not send product');
-			},
-		});
-		return;
-	}
-	res.status(404);
-	res.set('Content-Type', 'text/plain');
-	res.send('Invalid Product ID');
 }
 
 function sendReviews(req, res) {
 	const productID = +req.params.productid;
-	if (inventory[productID] !== undefined) {
-		console.log(inventory[productID].reviews)
-		let sum = 0;
-		let tot = 0;
-		for (const rating of inventory[productID].reviews) {
-			sum += rating;
-			tot += 1;
+	let query = {
+		id : {'$eq' : productID}
+	};
+	console.log(query);
+
+	db.collection("products").findOne(query, function(err, result) {
+		if(err) {
+			console.log('[Error: ([GET] Product) => Could not query product.]');
+			res.status(400);
+			res.set('Content-Type', 'text/plain');
+			res.send('[Error: ([GET] Product) => Could not query product. Bad Request.]');
+			return;
 		}
-		let avgRating = (tot === 0) ? -1 : sum/tot;
-		console.log(avgRating)
+		console.log(result);
+		if (result == null) {
+			console.log('[Error: ([GET] Product) => Product Does not Exist.]');
+			res.status(404);
+			res.set('Content-Type', 'text/plain');
+			res.send('[Error: ([GET] Product) => Product Could not be Found.]');
+			return;
+		}
+
+		let avgRating = -1;
+		if (result.reviews.length !== 0) {
+			let sum = 0;
+			let tot = 0;
+			console.log(result.reviews)
+			for (const rating of result.reviews) {
+				sum += rating;
+				tot += 1;
+			}
+			avgRating = sum/tot;
+		}
+		//console.log(avgRating)
+
 		res.format ({
 			'text/html': ()=> {
 				res.status(200);
 				res.set('Content-Type', 'text/html');
-				res.render(`pages/reviews`, {product: inventory[productID], avgRating: avgRating});
+				res.render(`pages/reviews`, {product: result, avgRating: avgRating});
 			},
 			'application/json': ()=> {
 				res.status(200);
 				res.set('Content-Type', 'application/json');
-				res.json(inventory[productID].reviews);
+				res.json(result.reviews);
 			},
 			'default': ()=> { 
-				res.status(404);
+				res.status(406);
 				res.set('Content-Type', 'text/plain');
-				res.send('Error: Bad Get Request');
-			},
+				res.send('[Error: ([GET] Reviews) => Requested format in Accept header is not supported.]');
+			}
 		});
-		return;
-	} 
-	res.status(404);
-	res.set('Content-Type', 'text/plain');
-	res.send('Invalid Product ID');
+	});
 }
 
 function sendOrders() {}
@@ -335,19 +346,42 @@ function addProduct(req, res){
 }
 
 function addReview(req, res){
-	try {
-		const productID = req.body.id;
-		const productRating = req.body.rating;  
-		inventory[productID].reviews.push(productRating);
-		res.status(201);
-		res.set('Content-Type', 'text/plain');
-		res.send('Succesfully added review');
-    } catch (parseError) {
-        console.error('Error Adding Product: ', parseError);
-		res.status(404);
-		res.set('Content-Type', 'text/plain');
-		res.sendStatus('Error adding review');
-    }
+	const productID = req.body.id;
+	const productRating = req.body.rating;
+	let query = {
+		id : {'$eq' : productID}
+	};
+	console.log(query);
+
+	db.collection("products").updateOne(query, {$push: {reviews: productRating}}, function(err, result) {
+		if(err) {
+			console.log('[Error: ([POST] Reviews) => Could not query product.]');
+			res.status(400);
+			res.set('Content-Type', 'text/plain');
+			res.send('[Error: ([POST] Reviews) => Could not query product. Bad Request.]');
+			return;
+		}
+		console.log(result);
+		if (result == null) {
+			console.log('([Error: ([POST] Reviews) => Product Does not Exist. Review not added.]');
+			res.status(404);
+			res.set('Content-Type', 'text/plain');
+			res.send('[Error: ([POST] Reviews) => Product Could not be Found. Review not added.]');
+			return;
+		}
+		res.format ({
+			'text/plain': ()=> {
+				res.status(201);
+				res.set('Content-Type', 'text/plain');
+				res.send('[Success: review was added]');
+			},
+			'default': ()=> { 
+				res.status(406);
+				res.set('Content-Type', 'text/plain');
+				res.send('[sendProducts()] => [Error: Requested format in Accept header is not supported.]');
+			}
+		});
+	});
 }
 
 function addOrder() {}

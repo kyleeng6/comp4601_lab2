@@ -14,23 +14,19 @@ function submitReview() {
 	// Alert user when review was added succesfully
 	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
-		if (this.readyState == 4 && this.status == 201) {
-			alert('Success: Review added.')
+		if (this.readyState == 4 && (this.status == 201 || this.status == 404)) {
+			alert(xhttp.responseText);
 			location.reload();
-		} else if (this.readyState == 4 && this.status == 404) {
-			alert('Error: Could not add review.')
 		}
 	};
 
 	// Send POST request
-	xhttp.open('POST', '/add-review');			
+	xhttp.open('POST', '/reviews');			
 	xhttp.setRequestHeader('Content-Type', 'application/json');
+	xhttp.setRequestHeader('Accept', 'text/plain');
 	let data = JSON.stringify(reviewObj);
 	xhttp.send(data);
 }
-
-
-
 
 function viewAllReviews() {
 	// Get ID of the product we are currently viewing
