@@ -1,0 +1,28 @@
+html
+	head
+		link(rel='stylesheet' href='/styles.css')
+		title Product Page 
+body
+	div#header
+		br
+		include ../partials/header	
+		br
+	div#product
+		a(href='/products/'+product.id) 
+			h1 Name: "#{product.name}"
+		if (avgRating == -1)
+			h4 Average Rating: No reviews yet
+			h4 All Reviews: No reviews yet
+		else
+			h4 Average Rating: #{avgRating.toFixed(2)}
+			h3 All Reviews:
+			for rating in product.reviews
+				p #{rating}/10
+		br
+		br
+		br
+	div#footer
+		br
+		include ../partials/footer
+		br
+	script(src='/product.js')

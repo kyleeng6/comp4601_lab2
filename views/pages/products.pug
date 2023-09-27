@@ -1,0 +1,37 @@
+html
+	head
+		link(rel='stylesheet' href='/styles.css')
+		title Product List
+	
+body(onload = 'init()')
+	div#header
+		br
+		include ../partials/header	
+		br
+
+	div
+		br
+		h1 Product List
+
+		form
+			label(for='search-bar') Search:
+			| &nbsp;
+			input(type='text', id='search-bar', placeholder='Search by name...')
+			| &nbsp;
+			input(type='button' value='Search' onclick='searchQuery()')
+			|
+			br
+			input(type='checkbox', id='in-stock')
+			label(for='in-stock') In-Stock Only
+			br
+		
+		each product in inventory
+			a(href='/products/'+product.id) #{product.name}
+			br
+		
+	div#footer
+		br
+		include ../partials/footer
+		br
+	
+	script(src='/products.js')

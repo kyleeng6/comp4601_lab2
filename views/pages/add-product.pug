@@ -1,0 +1,60 @@
+html
+	head
+		link(rel='stylesheet' href='/styles.css')
+		title Product Page 
+body
+	div#header
+		br
+		include ../partials/header	
+		br
+
+	form#add-product
+		h1 Add a New Product:
+		
+		label(for='product-name') Product Name
+		br 
+		input#product-name(type='text')
+		br
+		br
+
+		label(for='product-price') Price
+		br 
+		input#product-price(type='number' step='0.01')
+		br
+		br
+		label(for='product-price') Product Size
+		br
+		label(for='product-x-dimension') X-Dimension
+		br 
+		input#product-x-dimension(type='number' step='1')
+		br
+		label(for='product-y-dimension') Y-Dimension
+		br
+		input#product-y-dimension(type='number' step='1')
+		br
+		label(for='product-z-dimension') Z-Dimension
+		br
+		input#product-z-dimension(type='number' step='1')
+		br
+		br
+
+		label(for='product-stock') Stock
+		br
+		input#product-stock(type='number' step='1')
+		br
+		br
+
+		br
+		input(type='reset' value='Reset')
+		input(type='button' value='Submit' onclick='validateForm()')
+		br
+		br
+		br
+		br
+
+	div#footer
+		br
+		include ../partials/footer
+		br
+	
+	script(src='/add-product.js')
